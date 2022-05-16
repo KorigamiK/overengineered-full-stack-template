@@ -1,33 +1,42 @@
+import "reflect-metadata";
 import { ApolloServer } from "apollo-server-micro";
-import { typeDefs } from "../../graphql/schema";
-import { resolvers } from "../../graphql/resolvers";
-import Cors from "micro-cors";
+import { PrismaClient } from "@prisma/client";
+import { buildSchema } from "type-graphql";
+import { resolvers } from "@generated/type-graphql";
+import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
+import { NextApiRequest, NextApiResponse } from "next";
+
 import prisma from "../../src/prisma";
 
-const cors = Cors();
-
-const apolloServer = new ApolloServer({
-  typeDefs,
-  resolvers,
-  context: { prisma },
-});
-
-const startServer = apolloServer.start();
-
-export default cors(async function handler(req, res) {
-  if (req.method === "OPTIONS") {
-    res.end();
-    return false;
-  }
-  await startServer;
-
-  await apolloServer.createHandler({
-    path: "/api/graphql",
-  })(req, res);
-});
+export interface GraphQLContext {
+  prisma: PrismaClient;
+  req: NextApiRequest;
+  res: NextApiResponse;
+}
 
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const schema = await buildSchema({
+    resolvers: [...resolvers],
+    validate: false,
+  });
+  const apolloServer = new ApolloServer({
+    schema,
+    plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
+    context: (): GraphQLContext => ({ prisma, req, res }),
+  });
+
+  await apolloServer.start();
+
+  await apolloServer.createHandler({
+    path: "/api/graphql",
+  })(req, res);
+}

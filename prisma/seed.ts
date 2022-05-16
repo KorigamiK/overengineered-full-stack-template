@@ -1,6 +1,7 @@
 // prisma/seed.ts
 
 import { PrismaClient } from "@prisma/client";
+
 import data from "../data/links.json";
 const prisma = new PrismaClient();
 
