@@ -30,7 +30,10 @@ export default async function handler(
   });
   const apolloServer = new ApolloServer({
     schema,
-    plugins: [ApolloServerPluginLandingPageGraphQLPlayground()],
+    plugins:
+      process.env.NODE_ENV !== "production"
+        ? [ApolloServerPluginLandingPageGraphQLPlayground()]
+        : undefined,
     context: (): GraphQLContext => ({ prisma, req, res }),
   });
 
